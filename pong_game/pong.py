@@ -22,9 +22,6 @@ player_two_pos = []
 player_one_speed = 0
 player_two_speed = 0
 
-player_one_score = 0
-player_two_score = 0
-
 ball_pos = []
 ball_radius = 4
 ball_speed = []
@@ -54,13 +51,13 @@ def ball_touch_player(ball, player, player_speed, is_player_one ):
     third_part_player = height_player / 3
     player_touched = False
     if colision:
+        player_touched = True
         if ball.y >= player.top + third_part_player and ball.y <= player.top + third_part_player * 2:
             calculate_ball_direction(player_speed, touch_mid=True, is_player_one = is_player_one)
-            player_touched = True
-        elif ball.y >= player.top and ball.y <= player.top + height_player:
+        else:
             calculate_ball_direction(player_speed, touch_mid=False, is_player_one = is_player_one)
-            player_touched = True
     return player_touched
+
 def verify_if_ball_touch_player(ball, player, player_speed, playerOne = False):
     return ball_touch_player(ball, player, player_speed, playerOne)
 
@@ -69,8 +66,6 @@ def initialize_game(initialize_scores = True):
     global player_one_pos
     global player_two_pos
     global ball_speed
-    global player_one_score
-    global player_two_score
     global player_one
     global player_two
     global ball
@@ -82,9 +77,6 @@ def initialize_game(initialize_scores = True):
     player_two = pygame.draw.rect(screen, red, (player_two_pos[0], player_two_pos[1], width_player, height_player))
 
     ball_speed = [4, 0]
-    if initialize_scores:
-        player_one_score = 0
-        player_two_score = 0
 
 def scored():
     initialize_game(initialize_scores=False)
@@ -104,15 +96,16 @@ font_menu.set_bold(True)
 
 player_one_score_rendered = font_score.render('Score player one : 0', False, white)
 player_two_score_rendered = font_score.render('Score player two : 0', False, white)
-player_two_score_rendered = font_score.render('Score player two : 0', False, white)
+player_one_win_rendered   = font_menu.render('¡The winner is player one!', False, white)
+player_two_win_rendered   = font_menu.render('¡The winner is player two!', False, white)
+exit_rendered             = font_menu.render('EXIT', False, red)
+play_rendered             = font_menu.render('PLAY NOW', False, white)
+resume_rendered           = font_menu.render('RESUME', False, white)
 
-exit_rendered = font_menu.render('EXIT', False, red)
-play_rendered = font_menu.render('PLAY NOW', False, white)
-resume_rendered = font_menu.render('RESUME', False, white)
-
-exit_pos   = [int(screen_size[0] * 0.5 - exit_rendered.get_width() / 2), int(screen_size[1] * 0.7 - 25)]
-play_pos   = [int(screen_size[0] * 0.5 - play_rendered.get_width() / 2), int(screen_size[1] * 0.3 - 25)]
-resume_pos = [int(screen_size[0] * 0.5 - resume_rendered.get_width() / 2), int(screen_size[1] * 0.3 - 25)]
+exit_pos       = [int(screen_size[0] * 0.5 - exit_rendered.get_width() / 2), int(screen_size[1] * 0.7 - 25)]
+play_pos       = [int(screen_size[0] * 0.5 - play_rendered.get_width() / 2), int(screen_size[1] * 0.3 - 25)]
+resume_pos     = [int(screen_size[0] * 0.5 - resume_rendered.get_width() / 2), int(screen_size[1] * 0.3 - 25)]
+player_win_pos = [int(screen_size[0] * 0.5 - player_one_win_rendered.get_width() / 2), int(screen_size[1] * 0.5) - 25]
 
 def view_menu_stop():
     waiting = True
@@ -137,9 +130,7 @@ def view_menu_stop():
         pygame.display.flip()
         clock.tick(60)
 
-def view_game():
-    global player_one_score
-    global player_two_score
+def start_game():
     global player_one_speed
     global player_two_speed
     global player_one_pos
@@ -151,6 +142,9 @@ def view_game():
     global player_two;
     game_finished = False
     restart_positions = False
+    player_one_score = 0
+    player_two_score = 0
+    winner = None
     while not game_finished:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -195,7 +189,11 @@ def view_game():
         if ball_pos[1] <= 0 or ball_pos[1] >= screen_size[1]:
             ball_speed[1] *=-1
 
-        if player_one_score == 3 or player_two_score == 3:
+        if player_one_score == 3:
+            game_finished = True;
+            winner = 1;
+        elif player_two_score == 3:
+            winner = 2;
             game_finished = True;
 
         if restart_positions:
@@ -229,9 +227,11 @@ def view_game():
 
         pygame.display.flip()
         clock.tick(60)
+    return winner
 
 def view_menu_screen():
     menu_screen = True
+    winner = None
     while menu_screen:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -241,7 +241,7 @@ def view_menu_screen():
                 pos_mouse = pygame.mouse.get_pos()
                 if play_rendered.get_rect(topleft=play_pos).collidepoint(pos_mouse):
                     initialize_game()
-                    view_game()
+                    winner = start_game()
                 elif exit_rendered.get_rect(topleft=exit_pos).collidepoint(pos_mouse):
                     pygame.quit()
                     sys.exit()
@@ -249,6 +249,11 @@ def view_menu_screen():
         screen.fill(black)
 
         screen.blit(exit_rendered, exit_pos)
+        if winner != None:
+            if winner == 1:
+                screen.blit(player_one_win_rendered, player_win_pos)
+            if winner == 2:
+                screen.blit(player_two_win_rendered, player_win_pos)
         screen.blit(play_rendered, play_pos)
 
         pygame.display.flip()
