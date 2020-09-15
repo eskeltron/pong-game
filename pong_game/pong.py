@@ -29,36 +29,40 @@ ball_pos = []
 ball_radius = 4
 ball_speed = []
 
-def calculate_ball_direction(player_speed, touch_mid = False):
-    if touch_mid:
-        ball_speed[1] = 0
-        ball_speed[0] = 6 if ball_speed[0] > 0 else -6 
+ball = None
+player_one = None
+player_two = None
+
+
+def calculate_ball_direction(player_speed, touch_mid = False, is_player_one = True):
+    global ball_speed
+
     if player_speed < 0:
         ball_speed[1] = -4
     elif player_speed > 0:
         ball_speed[1] = 4
+    else:
+        ball_speed[1] = 0
 
-    ball_speed[0] *= -1
+    if touch_mid:
+        ball_speed[0] = 6 if is_player_one else -6 
+    else:
+        ball_speed[0] = 4 if is_player_one else -4
 
-def ball_touch_player(ball_pos, player_position, player_speed): 
+def ball_touch_player(ball, player, player_speed, is_player_one ):
+    colision = ball.colliderect(player)
     third_part_player = height_player / 3
-    ball_position_y = ball_pos[1] + ball_radius
-    ball_position_x_min = ball_pos[0] - ball_radius
-    ball_position_x_max = ball_pos[0] + ball_radius
-    same_position_x = player_position[0] >= ball_position_x_min and player_position[0] <= ball_position_x_max
     player_touched = False
-    if  same_position_x:
-        if ball_position_y >= player_position[1] + third_part_player and ball_position_y <= player_position[1] + third_part_player * 2:         
-            calculate_ball_direction(player_speed, touch_mid=True)
+    if colision:
+        if ball.y >= player.top + third_part_player and ball.y <= player.top + third_part_player * 2:
+            calculate_ball_direction(player_speed, touch_mid=True, is_player_one = is_player_one)
             player_touched = True
-        elif ball_position_y >= player_position[1] and ball_position_y <= player_position[1] + height_player:
-            calculate_ball_direction(player_speed)
+        elif ball.y >= player.top and ball.y <= player.top + height_player:
+            calculate_ball_direction(player_speed, touch_mid=False, is_player_one = is_player_one)
             player_touched = True
     return player_touched
-
-def verify_if_ball_touch_player(ball_pos, player_position, player_speed, playerOne = False):
-    player_position_copy = [player_position[0] + 15 if playerOne else player_position[0], player_position[1]]
-    return ball_touch_player(ball_pos, player_position_copy, player_speed)
+def verify_if_ball_touch_player(ball, player, player_speed, playerOne = False):
+    return ball_touch_player(ball, player, player_speed, playerOne)
 
 def initialize_game(initialize_scores = True):
     global ball_pos
@@ -67,9 +71,16 @@ def initialize_game(initialize_scores = True):
     global ball_speed
     global player_one_score
     global player_two_score
+    global player_one
+    global player_two
+    global ball
     ball_pos = [int(screen_size[0] * 0.5), int(screen_size[1] * 0.5)]
+    ball = pygame.draw.circle(screen, white, ball_pos, ball_radius)
     player_one_pos = [int(screen_size[0] - screen_size[0] * 0.90), int(screen_size[1] * 0.5 - height_player / 2)]
     player_two_pos = [int(screen_size[0] - screen_size[0] * 0.10), int(screen_size[1] * 0.5 - height_player / 2)]
+    player_one = pygame.draw.rect(screen, red, (player_one_pos[0], player_one_pos[1], width_player, height_player))
+    player_two = pygame.draw.rect(screen, red, (player_two_pos[0], player_two_pos[1], width_player, height_player))
+
     ball_speed = [4, 0]
     if initialize_scores:
         player_one_score = 0
@@ -86,13 +97,13 @@ def player_touch_limits(player_speed, player_pos_y):
         player_touch_limit = True
     return player_touch_limit
 
-font_name = pygame.font.get_default_font()
-print(font_name)
+
 font_score = pygame.font.Font('retro_computer_personal_use.ttf', 13)
 font_menu  = pygame.font.Font('retro_computer_personal_use.ttf', 25)
 font_menu.set_bold(True)
 
 player_one_score_rendered = font_score.render('Score player one : 0', False, white)
+player_two_score_rendered = font_score.render('Score player two : 0', False, white)
 player_two_score_rendered = font_score.render('Score player two : 0', False, white)
 
 exit_rendered = font_menu.render('EXIT', False, red)
@@ -135,6 +146,9 @@ def view_game():
     global player_two_pos
     global player_one_score_rendered
     global player_two_score_rendered
+    global ball;
+    global player_one;
+    global player_two;
     game_finished = False
     restart_positions = False
     while not game_finished:
@@ -188,8 +202,8 @@ def view_game():
             scored()
             restart_positions = False
 
-        if not verify_if_ball_touch_player(ball_pos, player_one_pos, player_one_speed, playerOne = True):
-            verify_if_ball_touch_player(ball_pos, player_two_pos, player_two_speed)
+        if not verify_if_ball_touch_player(ball, player_one, player_one_speed, playerOne = True):
+            verify_if_ball_touch_player(ball, player_two, player_two_speed)
         
         screen.fill(black)
 
@@ -204,10 +218,10 @@ def view_game():
         ball_pos[0] += ball_speed[0]
         ball_pos[1] += ball_speed[1]
 
-        pygame.draw.circle(screen, white, ball_pos, ball_radius)
+        ball = pygame.draw.circle(screen, white, ball_pos, ball_radius)
         
-        pygame.draw.rect(screen, red, (player_one_pos_x, player_one_pos_y, width_player, height_player))
-        pygame.draw.rect(screen, red, (player_two_pos_x, player_two_pos_y, width_player, height_player))
+        player_one = pygame.draw.rect(screen, red, (int(player_one_pos_x), int(player_one_pos_y), width_player, height_player))
+        player_two = pygame.draw.rect(screen, red, (int(player_two_pos_x), int(player_two_pos_y), width_player, height_player))
 
 
         screen.blit(player_one_score_rendered, [int(screen_size[0] * 0.2), 10])
